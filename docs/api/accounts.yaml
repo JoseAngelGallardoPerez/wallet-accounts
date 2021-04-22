@@ -1,0 +1,4986 @@
+openapi: 3.0.0
+info:
+  version: "0.0.1"
+  title: 'Wallet accounts service'
+  description: |
+    Server uses rfc3339 for time in request and in response.
+security:
+  - bearerAuth: []
+paths:
+  '/accounts/private/v1/accounts':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Create a new account as admin.
+      description: |
+        Not allowed if admin has no "create_accounts" permission. Also admin need "create_accounts_with_initial_balance" permission to create account with not zero balance.
+      operationId: createAnAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccount'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Show list of accounts for an usual user.
+      description: Responds with accounts collection associated with current user. Has includes of related models, filters, sortings, pagination.
+      operationId: showListOfAccounts
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with account.
+          schema:
+            type: string
+            enum:
+              - type
+              - user
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - numuber
+              - isActive
+              - createdAt
+              - type.name
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[typeId]
+          in: query
+          description: Applies filter by typeId.
+          schema:
+            type: string
+        - name: filter[isActive]
+          in: query
+          description: Applies filter by isActive.
+          schema:
+            type: string
+        - name: filter[allowDeposits]
+          in: query
+          description: Applies filter by allowDeposits.
+          schema:
+            type: string
+        - name: filter[allowWithdrawals]
+          in: query
+          description: Applies filter by allowWithdrawals.
+          schema:
+            type: string
+        - name: filter[userId]
+          in: query
+          description: Applies filter by userId.
+          schema:
+            type: string
+        - name: filter[accountType.currencyCode]
+          in: query
+          description: Applies filter by currencyCode in account type.
+          schema:
+            type: string
+        - name: filter[isIwtInstructionsAvailable]
+          in: query
+          description: Return accounts which have IWT bank account.
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullAccountList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/accounts/{id}:
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Update an existing account by id as admin.
+      description: Not allowed if admin has no "modify_accounts" permission.
+      parameters:
+        - name: id
+          in: path
+          description: Account id
+          required: true
+          schema:
+            type: string
+      operationId: updateAnAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccount'
+        required: true
+      responses:
+        '201':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Shows an account by passed id.
+      description: "Available for admins and users. Not allowed if user is not an account owner. Available for admins with one of permissions: 'view_accounts', 'view_user_reports', 'initiate_execute_user_transfers'"
+      operationId: getAccountById
+      parameters:
+        - name: id
+          in: path
+          description: Account id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/accounts:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Show list of accounts for admins.
+      description: "Has includes of related models, filters, sortings, pagination. Available for admins with one of permissions: 'view_accounts', 'view_user_reports', 'initiate_execute_user_transfers'"
+      operationId: showAdminListOfAccounts
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with account.
+          schema:
+            type: string
+            enum:
+              - type
+              - user
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - numuber
+              - isActive
+              - createdAt
+              - type.name
+              - user.username
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[typeId]
+          in: query
+          description: Applies filter by typeId.
+          schema:
+            type: string
+        - name: filter[isActive]
+          in: query
+          description: Applies filter by isActive.
+          schema:
+            type: string
+        - name: filter[allowDeposits]
+          in: query
+          description: Applies filter by allowDeposits.
+          schema:
+            type: string
+        - name: filter[allowWithdrawals]
+          in: query
+          description: Applies filter by allowWithdrawals.
+          schema:
+            type: string
+        - name: filter[userId]
+          in: query
+          description: Applies filter by userId.
+          schema:
+            type: string
+        - name: filter[accountType.currencyCode]
+          in: query
+          description: Applies filter by currencyCode in account type.
+          schema:
+            type: string
+        - name: filter[isIwtInstructionsAvailable]
+          in: query
+          description: Return accounts which have IWT bank account.
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullAccountList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/export/accounts:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Responds with a file with accounts.
+      description: Available for admins. Available for admins with "view_accounts" permission.
+      operationId: downloadCsvWithAccounts
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - numuber
+              - isActive
+              - createdAt
+              - type.name
+              - user.username
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[typeId]
+          in: query
+          description: Applies filter by typeId.
+          schema:
+            type: string
+        - name: filter[isActive]
+          in: query
+          description: Applies filter by isActive.
+          schema:
+            type: string
+        - name: filter[allowDeposits]
+          in: query
+          description: Applies filter by allowDeposits.
+          schema:
+            type: string
+        - name: filter[allowWithdrawals]
+          in: query
+          description: Applies filter by allowWithdrawals.
+          schema:
+            type: string
+        - name: filter[userId]
+          in: query
+          description: Applies filter by userId.
+          schema:
+            type: string
+        - name: filter[accountType.currencyCode]
+          in: query
+          description: Applies filter by currencyCode in account type.
+          schema:
+            type: string
+        - name: filter[isIwtInstructionsAvailable]
+          in: query
+          description: Applies filter by exist IWT bank accounts.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/generate/accounts/number:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Accounts
+      summary: Get a new account number.
+      description: Genearate account number which you can use to create a new account. Not allowed if admin has no "create_accounts" permission.
+      operationId: genearateAccountNumber
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prefix:
+                  type: string
+        required: false
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/account-types':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Account types
+      summary: Create a new account type as an admin.
+      description: |
+        Not allowed if admin has no "modify_account_types" permission.
+      operationId: createAnAccountType
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountType'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccountType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Account types
+      summary: Show list of account types.
+      description: "Available for all logged in users. Has includes of related models, filters, sortings, pagination. Available for admins with one of permissions: 'view_accounts', 'create_accounts', 'view_modify_settings'"
+      operationId: showListOfAccountTypes
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with an account type.
+          schema:
+            type: string
+            enum:
+              - depositPayoutPeriod
+              - creditChargePeriod
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - name
+              - currencyCode
+              - annualInterestRate
+              - period.name
+        - name: filter[name]
+          in: query
+          description: Applies filter by name. Checks if name contains passed value. Can be used for search.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountTypeResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/account-types/{id}:
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Account types
+      summary: Update an existing account type as an admin by passed id.
+      description: |
+        Not available if admin has no "modify_account_types" permission.
+      parameters:
+        - name: id
+          in: path
+          description: Account type id.
+          required: true
+          schema:
+            type: string
+      operationId: updateAnAccountType
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountType'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccountType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Account types
+      summary: Shows an account type by passed id.
+      description: "Available for all logged in users. Available for admins with one of permissions: 'view_accounts', 'create_accounts', 'view_modify_settings'"
+      operationId: getAccountTypeById
+      parameters:
+        - name: id
+          in: path
+          description: Account type id.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullAccountType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - Account types
+      summary: Delete an existing account type as an admin by passed id.
+      description: Delete an existing account type as an admin by passed id. Not available if admin has no "modify_account_types" permission.
+      operationId: deleteAccountType
+      parameters:
+        - name: id
+          in: path
+          description: Account type id.
+          required: true
+          schema:
+            type: string
+            format: uint32
+      responses:
+        '204':
+          description: Successful request
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/revenue-accounts:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Revenue Accounts
+      summary: Show list of revenue accounts.
+      description: Responds with revenue accounts collection. Available for admins with "view_revenue" permission.
+      operationId: showListOfRevenueAccounts
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RevenueAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/revenue-accounts/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Revenue Accounts
+      summary: Get a revenue account by passed id.
+      description: Available for admins with "view_revenue" permission.
+      operationId: getRevenueAccountById
+      parameters:
+        - name: id
+          in: path
+          description: Revenue account id.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RevenueAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/cards:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Create a new card as admin.
+      description: Available for admins with "create_cards" permission.
+      operationId: createCard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCard'
+        required: true
+      responses:
+        '201':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Card'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Show list of cards for admin.
+      description: Has includes of related models, filters, sortings, pagination. Available for admins with "view_cards" permission.
+      operationId: showListOfCard
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with card.
+          schema:
+            type: string
+            enum:
+              - cardType
+              - user
+              - cardType.category
+              - cardType.format
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - number
+              - status
+              - createdAt
+              - cardType.name
+              - expirationDate
+              - cardType.currencyCode
+              - user.username
+        - name: filter[userId]
+          in: query
+          description: Applies filter by user id.
+          schema:
+            type: string
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[cardTypeId]
+          in: query
+          description: Applies filter by card type id.
+          schema:
+            type: string
+        - name: filter[cardType.currencyCode]
+          in: query
+          description: Applies filter by currency code of associated card type.
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          description: Applies filter by status.
+          schema:
+            type: string
+        - name: filter[createdAtFrom]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+        - name: filter[createdAtTo]
+          in: query
+          description: Applies filter by createdAt. Returns records where date < passed.
+          schema:
+            type: string
+        - name: page[size]
+          in: query
+          description: Specifies count of objects returned in response. Default value is 20.
+          schema:
+            type: string
+        - name: page[number]
+          in: query
+          description: Specifies page number to be shown in response. size + number makes offset for records. Default value is 1.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullCard'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/own-cards:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Show list of cards for current user.
+      description: Returns all cards where owner is current user.
+      operationId: showOwnListOfCard
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with card.
+          schema:
+            type: string
+            enum:
+              - cardType
+              - user
+              - cardType.category
+              - cardType.format
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - number
+              - status
+              - createdAt
+              - cardType.name
+              - expirationDate
+              - cardType.currencyCode
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[cardTypeId]
+          in: query
+          description: Applies filter by card type id.
+          schema:
+            type: string
+        - name: filter[cardType.currencyCode]
+          in: query
+          description: Applies filter by currency code of associated card type.
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          description: Applies filter by status.
+          schema:
+            type: string
+        - name: filter[createdAtFrom]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+        - name: filter[createdAtTo]
+          in: query
+          description: Applies filter by createdAt. Returns records where date < passed.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullCard'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/cards/{id}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Shows a card by passed id.
+      description: Available for admins and users. Not allowed if user is not an account owner. Available for admins with "view_cards" permission.
+      operationId: showCard
+      parameters:
+        - name: id
+          in: path
+          description: ID of card.
+          required: true
+          schema:
+            type: string
+            format: uint32
+        - name: include
+          in: query
+          description: Used to load nested resources associated with card.
+          schema:
+            type: string
+            enum:
+              - cardType
+              - user
+              - cardType.category
+              - cardType.format
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullCard'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Update a card as an admin by passed id.
+      description: Available for admins with "modify_cards" permission.
+      operationId: updatePutCard
+      parameters:
+        - name: id
+          in: path
+          description: ID of a card.
+          required: true
+          schema:
+            type: string
+            format: uint32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCard'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Card'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    patch:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Update a card as an admin by passed id.
+      description: Available for admins with "modify_cards" permission.
+      operationId: updatePatchCard
+      parameters:
+        - name: id
+          in: path
+          description: ID of a card.
+          required: true
+          schema:
+            type: string
+            format: uint32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCard'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Card'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/export/cards:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Cards
+      summary: Responds with a file with cards for admins.
+      operationId: downloadCsvWithCards
+      description: Available for admins with "view_cards" permission.
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - number
+              - status
+              - createdAt
+              - cardType.name
+              - expirationDate
+              - cardType.currencyCode
+        - name: filter[userId]
+          in: query
+          description: Applies filter by user id.
+          schema:
+            type: string
+        - name: filter[numberContains]
+          in: query
+          description: Applies filter by number. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: filter[cardTypeId]
+          in: query
+          description: Applies filter by card type id.
+          schema:
+            type: string
+        - name: filter[cardType.currencyCode]
+          in: query
+          description: Applies filter by currency code of associated card type.
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          description: Applies filter by status.
+          schema:
+            type: string
+        - name: filter[createdAtFrom]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+        - name: filter[createdAtTo]
+          in: query
+          description: Applies filter by createdAt. Returns records where date < passed.
+          schema:
+            type: string
+        - name: page[size]
+          in: query
+          description: Specifies count of objects returned in response. Default value is 20.
+          schema:
+            type: string
+        - name: page[number]
+          in: query
+          description: Specifies page number to be shown in response. size + number makes offset for records. Default value is 1.
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful request
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  /accounts/private/v1/card-types:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Create a card type as admin.
+      description: Available for admins with "view_modify_settings" permission.
+      operationId: createCardType
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardType'
+        required: true
+      responses:
+        '201':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CardType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Show list of card types.
+      description: "Available for admins with one of permissions: 'view_cards', 'create_cards', 'view_modify_settings'"
+      operationId: indexCardType
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with card type.
+          schema:
+            type: string
+            enum:
+              - category
+              - format
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - name
+              - currencyCode
+              - category.name
+        - name: filter[nameContains]
+          in: query
+          description: Applies filter by name. Checks if number contains passed value. Can be used for search.
+          schema:
+            type: string
+        - name: page[size]
+          in: query
+          description: Specifies count of objects returned in response. Default value is 20.
+          schema:
+            type: string
+        - name: page[number]
+          in: query
+          description: Specifies page number to be shown in response. size + number makes offset for records. Default value is 1.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullCardType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/card-types/categories:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Show list of card type categories.
+      description: Available for admins.
+      operationId: indexCardTypeCategory
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardTypeCategory'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/card-types/formats:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Show list of card type formats.
+      description: Available for admins.
+      operationId: indexCardTypeFormat
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardTypeFormat'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/card-types/{id}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Show a card type by passed id.
+      description: "Available for admins with one of permissions: 'view_cards', 'create_cards', 'view_modify_settings'"
+      operationId: showCardType
+      parameters:
+        - name: id
+          in: path
+          description: ID of card type
+          required: true
+          schema:
+            type: string
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CardType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Update card type as an admin by passed id.
+      description: Set "null" for iconId to remove the icon. Available for admins with "view_modify_settings" permission.
+      operationId: updatePutCardType
+      parameters:
+        - name: id
+          in: path
+          description: ID of card type
+          required: true
+          schema:
+            type: string
+            format: uint32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardType'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CardType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    patch:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Update card type as an admin by passed id.
+      description: Set "null" for iconId to remove the icon.. Available for admins with "view_modify_settings" permission.
+      operationId: updatePatchCardType
+      parameters:
+        - name: id
+          in: path
+          description: ID of card type
+          required: true
+          schema:
+            type: string
+            format: uint32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardType'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CardType'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - Card types
+      summary: Delete a card type by id as an admin.
+      description: Available for admins with "view_modify_settings" permission.
+      operationId: deleteCardType
+      parameters:
+        - name: id
+          in: path
+          description: ID of card type.
+          required: true
+          schema:
+            type: string
+            format: uint32
+      responses:
+        '204':
+          description: Successful request
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/fee/transfer:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Creates new trasnfer fee.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: createTransferFee
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferFee'
+        required: true
+      responses:
+        '201':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransferFee'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/fee/transfer/id/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Get transfer fee.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: getTransferFeeById
+      parameters:
+        - name: id
+          in: path
+          description: Fee id
+          required: true
+          schema:
+            type: number
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransferFee'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Delete transfer fee
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: deleteTransferFeeById
+      parameters:
+        - name: id
+          in: path
+          description: fee id
+          required: true
+          schema:
+            type: number
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Update transfer fee.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: updateTransferFee
+      parameters:
+        - name: id
+          in: path
+          description: fee id
+          required: true
+          schema:
+            type: number
+            format: uint32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransferFee'
+
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransferFee'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/fee/transfer/subject/{requestSubject}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Get transfer fees list.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: listTransferFeesByRequestSubject
+      parameters:
+        - name: requestSubject
+          in: path
+          description: transfer request subject
+          required: true
+          schema:
+            type: string
+            example: "tba"
+        - name: filter[currencyCode]
+          in: query
+          description: Filter by currency code
+          schema:
+            type: string
+            example: "EUR"
+        - name: filter[userGroupId]
+          in: query
+          description: Filter by user group id
+          schema:
+            type: string
+            example: "25"
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransferFee'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/fee/transfer/subject/{requestSubject}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Get transfer fees list.
+      description: Available for users.
+      operationId: listUserTransferFeesByRequestSubject
+      parameters:
+        - name: requestSubject
+          in: path
+          description: transfer request subject
+          required: true
+          schema:
+            type: string
+            example: "tba"
+            enum:
+              - tba
+              - tbu
+              - cft
+              - owt
+        - name: filter[currencyCode]
+          in: query
+          description: Filter by currency code
+          schema:
+            type: string
+            example: "EUR"
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransferFee'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/fee/transfer/parameters/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transfer Fee
+      summary: Get transfer fee parameters list.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: listTransferFeesParameters
+      parameters:
+        - name: id
+          in: path
+          description: fee id
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransferFeeParameters'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  /accounts/private/v1/settings:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Settings
+      summary: Get settings list.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: getAllSettings
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Setting'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Settings
+      summary: Updates settings.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: massUpdateSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MassUpdateSetting'
+      responses:
+        '200':
+          description: Successful request'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/settings/{name}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Settings
+      summary: Retrieve setting by name.
+      description: |
+        Available for admins who has "view_modify_settings" permission to fetch any settings.
+        \
+        Settings with pattern "\w{2,3}_tan_required" are also available for users.
+      operationId: getSettingByName
+      parameters:
+        - name: name
+          in: path
+          description: Setting name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Setting'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Settings
+      summary: Updates setting by name.
+      description: Available for admins who has "view_modify_settings" permission.
+      operationId: updateSettingByName
+      parameters:
+        - name: name
+          in: path
+          description: Setting name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSetting'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Setting'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  '/accounts/private/v1/user/tan/count':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Counts active OTPs for current logged user.
+      description: Available for uesrs.
+      operationId: countTanForActiveUser
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TanCount'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/user/tan':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Request new OTP by SMS
+      description: Generate and send 1 OTP message via SMS
+      operationId: requestTanForActiveUser
+      responses:
+        '201':
+          description: Successful request
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/user/tan/request/availability':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Check if OTP request feature is enabled and available
+      operationId: checkIfTanRequestIsAvailable
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      isAllowed:
+                        type: boolean
+
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/tan/tan-by-sms/activity':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Retrieves "OTP by SMS" extension activity status.
+      description: The activity status determines if OTPs via SMS notification method available.
+      operationId: getTanBySMSActivityStatus
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ExtensionActivity'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/tan/count/{userId}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Counts active OTPs by user id.
+      description: Available for admins who has "view_user_profiles" permission.
+      operationId: countTanByUserId
+      parameters:
+        - name: userId
+          in: path
+          description: User id for who we need to count OTPs.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TanCount'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/tan/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OTPs
+      summary: Generates OTPs for user.
+      description: Available for admins who has "generate_send_new_tans" permission.
+      operationId: generateTansByUserId
+      parameters:
+        - name: userId
+          in: path
+          description: User id for who generate OTPs.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TanCreateRequest'
+      responses:
+        '201':
+          description: Successfuly created
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/transactions/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transactions
+      summary: Fetch transaction by id.
+      operationId: getTransactionById
+      parameters:
+        - name: id
+          in: path
+          description: Transaction id.
+          required: true
+          schema:
+            type: string
+        - name: include
+          in: query
+          description: Used to load nested resources associated with transaction.
+          schema:
+            type: string
+            enum:
+              - sender
+              - recipient
+              - requestData
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransactionView'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/transactions:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transactions
+      summary: Shows list of transactions for current user.
+      operationId: getUserTransactions
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - description
+              - amount
+              - createdAt
+              - status
+              - statusChangedAt
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+        - name: filter[accountId]
+          in: query
+          description: Applies filter by account id.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusNin'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ListTransaction'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/export/transactions-report:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transactions
+      summary: Responds with a file with transactions for account.
+      description: Available for users.
+      operationId: downloadUserTransactionsReport
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - description
+              - amount
+              - createdAt
+              - status
+              - statusChangedAt
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+        - name: filter[accountId]
+          in: query
+          required: true
+          description: Applies filter by account id.
+          schema:
+            type: string
+        - name: filter[type]
+          in: query
+          required: true
+          description: Applies filter by transaction type.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusNin'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/info/transactions:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transactions
+      summary: Shows list of transactions for current user.
+      operationId: getTransactionsInfo
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - description
+              - amount
+              - createdAt
+              - status
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+        - name: filter[accountId]
+          in: query
+          description: Applies filter by account id.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusNin'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      totalAmount:
+                        type: string
+                        format: decimal
+                        example: -2500
+                      count:
+                        type: number
+                        example: 10
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/templates/TBU:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - User Request Templates
+      summary: Shows list of saved TBU tempaltes.
+      description: Available for users.
+      operationId: listTbuRequestTemplates
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestTemplateTbu'
+
+  /accounts/private/v1/user/templates:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - User Request Templates
+      summary: Shows list of saved tempaltes.
+      description: Available for users.
+      operationId: listRequestTemplates
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/RequestTemplateTbu'
+                        - $ref: '#/components/schemas/RequestTemplateCft'
+                        - $ref: '#/components/schemas/RequestTemplateOwt'
+
+  /accounts/private/v1/user/templates/CFT:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - User Request Templates
+      summary: Shows list of saved CFT tempaltes.
+      description: Available for users.
+      operationId: listCftRequestTemplates
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestTemplateCft'
+
+  /accounts/private/v1/user/templates/OWT:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - User Request Templates
+      summary: Shows list of saved OWT tempaltes.
+      description: Available for users.
+      operationId: listOwtRequestTemplates
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestTemplateOwt'
+
+  /accounts/private/v1/user/templates/{id}:
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - User Request Templates
+      summary: Deletes a request template by id.
+      description: Available for users.
+      parameters:
+        - name: id
+          in: path
+          description: Template id
+          required: true
+          schema:
+            type: string
+      operationId: DeleteTemplateById
+      responses:
+        '200':
+          description: Successful request
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  /accounts/public/v1/countries:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Countries
+      summary: Shows list of all countries.
+      description: Availble for all.
+      operationId: getListCountries
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Country'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  /accounts/public/v1/countries/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Countries
+      summary: Shows a country by passed id.
+      description: Availble for all.
+      operationId: getCountryById
+      parameters:
+        - name: id
+          in: path
+          description: Country id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Country'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  /accounts/private/v1/payment-periods:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Payment periods
+      summary: Shows list of all payment periods.
+      description: Availble for all.
+      operationId: getListPaymentPeriods
+      parameters:
+        - name: filter[type]
+          in: query
+          description: Applies filter by type.
+          schema:
+            type: string
+            enum:
+              - deposit
+              - credit
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullPaymentPeriod'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  /accounts/private/v1/payment-methods:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Payment methods
+      summary: SHows list of all payment methods.
+      description: Availble for all.
+      operationId: getListPaymentMethods
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FullPaymentMethod'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/iwt-bank-accounts':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Create a new IWT bank account as an admin.
+      description: |
+        Not allowed if admin has no "create_modify_iwt_bank_accounts" permission.
+      operationId: createAnIwtAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIwtAccount'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/IwtBankAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Show list of IWT bank accounts.
+      description: Show list of IWT bank accounts.
+      operationId: showListOfIwtBankAccounts
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with an IWT bank account.
+          schema:
+            type: string
+            enum:
+              - beneficiaryBankDetails
+              - intermediaryBankDetails
+              - beneficiaryCustomer
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - beneficiaryBankDetails.bankName
+              - currencyCode
+              - isIwtEnabled
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IwtBankAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/iwt-bank-accounts/{id}':
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Update an existing IWT bank account as an admin by passed id.
+      description: |
+        Not available if admin has no "create_modify_iwt_bank_accounts" permission.
+      parameters:
+        - name: id
+          in: path
+          description: Iwt bank account id.
+          required: true
+          schema:
+            type: string
+      operationId: updateAnIwtBankAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIwtAccount'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/IwtBankAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Shows an IWT bank account by passed id.
+      description: Shows an IWT bank account by passed id.
+      operationId: getIwtBankAccountById
+      parameters:
+        - name: id
+          in: path
+          description: IWT bank account id.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/IwtBankAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Delete a IWT bank account by id as an admin.
+      operationId: deleteIwtBankAccount
+      description: Available for admins with "create_modify_iwt_bank_accounts" permission.
+      parameters:
+        - name: id
+          in: path
+          description: ID of IWT bank account.
+          required: true
+          schema:
+            type: string
+            format: uint32
+      responses:
+        '204':
+          description: Successful request
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/accounts/private/v1/iwt-bank-accounts/{id}/by-account-id':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Shows an IWT bank account by an account id.
+      description: Shows an IWT bank account by an account id.
+      operationId: getIwtBankAccountByAccountId
+      parameters:
+        - name: id
+          in: path
+          description: account id.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/IwtBankAccount'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/iwt-bank-accounts/{id}/pdf-for-account/{iwtId}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Iwt bank accounts
+      summary: Shows an IWT bank account by an account id.
+      description: Returns pdf by iwt id and account id
+      operationId: getIwtBankAccountPdfByIwtIdAndAccountId
+      parameters:
+        - name: id
+          in: path
+          description: account id.
+          required: true
+          schema:
+            type: string
+        - name: iwtId
+          in: path
+          description: iwt account id.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/form/{model}/{type}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Forms
+      summary: Return list of fields with validators for requested model
+      description: Return list of fields with validators for requested model
+      operationId: getFormModelType
+      parameters:
+        - name: model
+          in: path
+          description: model name. For example "account".
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: path
+          description: type of form. It can be list of registered forms for current model name. For example "post"
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelForm'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /accounts/private/v1/scheduled-transactions:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Scheduled transactions
+      summary: Get list of scheduled transactions(only root)
+      operationId: getListScheduledTransactions
+      description: Availalbe only for root.
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - reason
+              - amount
+              - status
+              - scheduledDate
+              - createdAt
+              - updatedAt
+              - account.number
+        - name: filter[createdAt]
+          in: query
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          schema:
+            type: string
+        - name: filter[reason]
+          in: query
+          schema:
+            type: string
+        - name: filter[scheduledDate:lte]
+          in: query
+          schema:
+            type: string
+        - name: filter[scheduledDate:gte]
+          in: query
+          schema:
+            type: string
+        - name: filter[createdAt:lte]
+          in: query
+          schema:
+            type: string
+        - name: filter[createdAt:gte]
+          in: query
+          schema:
+            type: string
+        - name: include
+          in: query
+          description: Used to load nested resources associated with transaction.
+          schema:
+            type: string
+            enum:
+              - account
+              - account.type
+      responses:
+        200:
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ScheduledTransaction'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/scheduled-transactions/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Scheduled transactions
+      summary: Get a scheduled transaction by id(only root)
+      operationId: getScheduledTransactions
+      description: Availalbe only for root.
+      parameters:
+        - name: id
+          in: path
+          description: Scheduled transactions id
+          required: true
+          schema:
+            type: string
+
+      responses:
+        200:
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FullScheduledTransaction'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/admin/export/scheduled-transactions:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Scheduled transactions
+      summary: Responds with a file with scheduled transactions(only root)
+      operationId: downloadCsvWithScheduledTransactions
+      description: Availalbe only for root.
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - reason
+              - amount
+              - status
+              - scheduledDate
+              - createdAt
+              - updatedAt
+              - account.number
+        - name: filter[createdAt]
+          in: query
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          schema:
+            type: string
+        - name: filter[reason]
+          in: query
+          schema:
+            type: string
+        - name: filter[scheduledDate:lte]
+          in: query
+          schema:
+            type: string
+        - name: filter[scheduledDate:gte]
+          in: query
+          schema:
+            type: string
+        - name: filter[createdAt:lte]
+          in: query
+          schema:
+            type: string
+        - name: filter[createdAt:gte]
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful request
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  /accounts/private/v1/user/transactions-history:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Transactions
+      summary: Shows history of transactions for user.
+      operationId: getUserTransactionsHistory
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - status
+              - amount
+              - createdAt
+              - updatedAt
+        - name: filter[q]
+          in: query
+          description: Search by description
+          schema:
+            type: string
+            example: Transfer Between Accounts
+        - name: filter[status]
+          in: query
+          description: Applies filter by status.
+          schema:
+            type: string
+            enum:
+              - pending
+              - executed
+              - cancelled
+        - name: filter[category]
+          in: query
+          description: Applies filter by category.
+          schema:
+            type: string
+            enum:
+              - add_fund
+              - withdraw
+              - send_money
+              - request_money
+              - pay_bills
+        - name: filter[operation]
+          in: query
+          description: Applies filter by type of transactions - incoming or outgoing.
+          schema:
+            type: string
+            enum:
+              - incoming
+              - outgoing
+        - name: filter[purpose]
+          in: query
+          description: Applies filter by purpose.
+          schema:
+            type: string
+            enum:
+              - tba_outgoing
+              - tba_incoming
+              - convert_outgoing
+              - convert_incoming
+              - tbu_outgoing
+              - tbu_incoming
+              - owt_outgoing
+              - cft_outgoing
+              - cft_incoming
+              - credit_account
+              - debit_revenue
+              - debit_account
+              - credit_revenue
+        - name: filter[type]
+          in: query
+          description: Applies filter by type.
+          schema:
+            type: string
+            enum:
+              - account
+              - card
+              - fee
+              - revenue
+        - $ref: '#/components/parameters/CreatedAtFrom'
+        - $ref: '#/components/parameters/CreatedAtTo'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ListTransactionsHistory'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+components:
+  schemas:
+    CreateAccount:
+      type: object
+      properties:
+        number:
+          type: string
+          minLength: 28
+          description: should contains alphanumeric characters only.
+        typeId:
+          type: number
+        userId:
+          type: string
+          description: must be an id of exisiting user.
+        description:
+          type: string
+        isActive:
+          type: boolean
+        initialBalance:
+          type: string
+          example: "125.95"
+        allowWithdrawals:
+          type: boolean
+        allowDeposits:
+          type: boolean
+        maturityDate:
+          type: string
+        payoutDay:
+          type: number
+        interestAccountId:
+          type: number
+      required:
+        - typeId
+        - userId
+    UpdateAccount:
+      type: object
+      properties:
+        description:
+          type: string
+        isActive:
+          type: boolean
+        balance:
+          type: string
+          format: decimal
+        paymentOption:
+          type: string
+        allowWithdrawals:
+          type: boolean
+        allowDeposits:
+          type: boolean
+        maturityDate:
+          type: string
+        payoutDay:
+          type: number
+          minimum: 1
+          maximum: 31
+        interestAccountId:
+          type: number
+    FullAccountList:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        allowDeposits:
+          type: boolean
+        allowWithdrawals:
+          type: boolean
+        availableAmount:
+          type: string
+          format: decimal
+        balance:
+          type: string
+          format: decimal
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        description:
+          type: string
+        interestAccountId:
+          type: integer
+          format: uint64
+        interestAccount:
+          $ref: '#/components/schemas/FullAccountList'
+        isActive:
+          type: boolean
+        maturityDate:
+          type: string
+          format: datetime
+        number:
+          type: string
+        payoutDay:
+          type: integer
+          format: uint64
+        typeId:
+          type: integer
+          format: uint64
+        userId:
+          type: string
+        user:
+          $ref: '#/components/schemas/AccountUser'
+        type:
+          $ref: '#/components/schemas/AccountType'
+
+    FullAccount:
+      type: object
+      properties:
+        number:
+          type: string
+        type:
+          $ref: '#/components/schemas/FullAccountType'
+        typeId:
+          type: integer
+          format: uint64
+        userId:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+        initialBalance:
+          type: string
+          format: decimal
+        allowWithdrawals:
+          type: boolean
+        allowDeposits:
+          type: boolean
+        maturityDate:
+          type: string
+          format: datetime
+        payoutDay:
+          type: integer
+          format: uint64
+        interestAccountId:
+          type: integer
+          format: uint64
+        interestAccount:
+          $ref: '#/components/schemas/FullAccount'
+        user:
+          $ref: '#/components/schemas/FullAccountUser'
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        id:
+          type: integer
+          format: uint64
+        availableAmount:
+          type: string
+          format: decimal
+        balance:
+          type: string
+          format: decimal
+
+    RevenueAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        currencyCode:
+          type: string
+          example: "EUR"
+        balance:
+          type: string
+        isDefault:
+          type: boolean
+        availableAmount:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    CreateAccountType:
+      type: object
+      properties:
+        name:
+          type: string
+          description: should contains alphanumeric characters only.
+        currencyCode:
+          type: string
+          example: "EUR"
+          description: must be an code of active currency.
+        autoNumberGeneration:
+          type: boolean
+        isNumberPrefix:
+          type: boolean
+        numberPrefix:
+          type: string
+          example: "EBQ"
+        isMinimumBalance:
+          type: boolean
+        balanceFeeAmount:
+          type: number
+        balanceChargeDay:
+          type: integer
+        balanceLimitAmount:
+          type: number
+        isLineOfCredit:
+          type: boolean
+        creditLimitAmount:
+          type: number
+        creditAnnualInterestRate:
+          type: number
+        creditPayoutMethodId:
+          type: integer
+        creditChargePeriodId:
+          type: integer
+        creditChargeDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+        creditChargeMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+        IsMonthlyMaintenance:
+          type: boolean
+        monthlyMaintenanceFee:
+          type: number
+        isDeposit:
+          type: boolean
+        depositAnnualInterestRate:
+          type: number
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+        depositPayoutMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+
+    UpdateAccountType:
+      type: object
+      properties:
+        name:
+          type: string
+          description: should contains alphanumeric characters only.
+        currencyCode:
+          type: string
+          example: "EUR"
+          description: must be an code of active currency.
+        autoNumberGeneration:
+          type: boolean
+        numberPrefix:
+          type: string
+          example: "EBQ"
+        isNumberPrefix:
+          type: boolean
+        isMinimumBalance:
+          type: boolean
+        balanceFeeAmount:
+          type: number
+        balanceChargeDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+        balanceLimitAmount:
+          type: number
+        isLineOfCredit:
+          type: boolean
+        creditLimitAmount:
+          type: number
+        creditAnnualInterestRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        creditPayoutMethodId:
+          type: integer
+        creditChargePeriodId:
+          type: integer
+        creditChargeDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+        creditChargeMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+        isMonthlyMaintenance:
+          type: boolean
+        monthlyMaintenanceFee:
+          type: number
+        IsDeposit:
+          type: boolean
+        depositAnnualInterestRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutDay:
+          type: integer
+          minimum: 1
+          maximum: 31
+        depositPayoutMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+
+    AccountTypeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        depositAnnualInterestRate:
+          type: string
+          format: decimal
+        creditAnnualInterestRate:
+          type: string
+          format: decimal
+        depositPayoutPeriodId:
+          type: integer
+        autoNumberGeneration:
+          type: boolean
+        numberPrefix:
+          type: string
+          example: "EBQ"
+        depositPayoutPeriod:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: uint64
+            name:
+              type: string
+        creditPayoutPeriod:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: uint64
+            name:
+              type: string
+        currency:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: uint64
+            code:
+              type: string
+
+    FullAccountType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        balanceFeeAmount:
+          type: string
+          format: decimal
+        balanceChargeDay:
+          type: integer
+        balanceLimitAmount:
+          type: string
+          format: decimal
+        creditLimitAmount:
+          type: string
+          format: decimal
+        creditAnnualInterestRate:
+          type: string
+          format: decimal
+        creditPayoutMethodId:
+          type: integer
+        creditPayoutMethod:
+          $ref: '#/components/schemas/FullPaymentMethod'
+        creditChargePeriodId:
+          type: integer
+        creditPayoutPeriod:
+          $ref: '#/components/schemas/FullPaymentPeriod'
+        creditChargeDay:
+          type: integer
+        creditChargeMonth:
+          type: integer
+        depositAnnualInterestRate:
+          type: string
+          format: decimal
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutMethod:
+          $ref: '#/components/schemas/FullPaymentMethod'
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutPeriod:
+          $ref: '#/components/schemas/FullPaymentPeriod'
+        depositPayoutDay:
+          type: integer
+        depositPayoutMonth:
+          type: integer
+        autoNumberGeneration:
+          type: boolean
+        numberPrefix:
+          type: string
+          example: "EBQ"
+        monthlyMaintenanceFee:
+          type: string
+          format: decimal
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    AccountType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        balanceFeeAmount:
+          type: string
+          format: decimal
+        balanceChargeDay:
+          type: integer
+        balanceLimitAmount:
+          type: string
+          format: decimal
+        creditLimitAmount:
+          type: string
+          format: decimal
+        creditAnnualInterestRate:
+          type: string
+          format: decimal
+        creditPayoutMethodId:
+          type: integer
+        creditChargePeriodId:
+          type: integer
+        creditChargeDay:
+          type: integer
+        creditChargeMonth:
+          type: integer
+        depositAnnualInterestRate:
+          type: string
+          format: decimal
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutDay:
+          type: integer
+        autoNumberGeneration:
+          type: boolean
+        monthlyMaintenanceFee:
+          type: string
+          format: decimal
+    FullPaymentPeriod:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: unit
+        name:
+          type: string
+        onlyPayout:
+          type: boolean
+          description: it indicates that the period is allowed only for payout(deposit) transactions
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    FullPaymentMethod:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: unit
+        name:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        method:
+          type: string
+    TransactionView:
+      type: object
+      properties:
+        amount:
+          type: string
+        createdAt:
+          type: string
+        description:
+          type: string
+        id:
+          type: number
+        purpose:
+          type: string
+        availableBalanceSnapshot:
+          type: string
+        currentBalanceSnapshot:
+          type: string
+        recipient:
+          type: object
+          properties:
+            account:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                number:
+                  type: string
+                typeName:
+                  type: string
+            profile:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+        requestData:
+          type: object
+          properties:
+            sourceAccountId:
+              type: number
+            destinationAccountId:
+              type: number
+        requestId:
+          type: number
+        requestSubject:
+          type: string
+        sender:
+          type: object
+          properties:
+            account:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                number:
+                  type: string
+                typeName:
+                  type: string
+            profile:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - executed
+            - cancelled
+        statusChangedAt:
+          type: string
+        type:
+          type: string
+        updatedAt:
+          type: string
+        showRequestId:
+          type: boolean
+
+    ListTransaction:
+      type: object
+      properties:
+        amount:
+          type: string
+        availableBalanceSnapshot:
+          type: string
+        currentBalanceSnapshot:
+          type: string
+        createdAt:
+          type: string
+        description:
+          type: string
+        id:
+          type: number
+        purpose:
+          type: string
+        requestId:
+          type: number
+        requestSubject:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - executed
+            - cancelled
+        statusChangedAt:
+          type: string
+        type:
+          type: string
+        updatedAt:
+          type: string
+        showRequestId:
+          type: boolean
+    ScheduledTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        scheduledDate:
+          type: string
+        status:
+          type: string
+        reson:
+          type: string
+        account:
+          type: object
+          properties:
+            number:
+              type: string
+            type:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                  example: EUR
+    FullScheduledTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        scheduledDate:
+          type: string
+        status:
+          type: string
+        reson:
+          type: string
+        requestId:
+          type: integer
+          format: uint64
+        accountId:
+          type: integer
+          format: uint64
+        account:
+          $ref: '#/components/schemas/FullAccount'
+
+    TransferFeeParameters:
+      type: object
+      properties:
+        id:
+          type: number
+        base:
+          type: string
+        currencyCode:
+          type: string
+        max:
+          type: string
+        min:
+          type: string
+        percent:
+          type: string
+        transferFeeId:
+          type: number
+
+    CreateTransferFee:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Default Transfer Fee"
+        requestSubject:
+          type: string
+          example: "TBA"
+        userGroupIds:
+          type: array
+          items:
+            type: number
+            format: int64
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateTransferFeeParameters'
+      required:
+        - name
+        - userGroupIds
+        - requestSubject
+    UpdateTransferFee:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "New Transfer Fee Name"
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateTransferFeeParameters'
+        relations:
+          type: array
+          items:
+            type: object
+            properties:
+              userGroupId:
+                type: number
+                format: int64
+              attached:
+                type: boolean
+                description: Indicates whether the fee should be attached to user group or not.
+            required:
+              - userGroupId
+
+    CreateTransferFeeParameters:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: EUR
+        delete:
+          type: boolean
+          example: false
+          description: set to true if parameter should be removed
+        base:
+          type: string
+          example: "0.35"
+          description: Must be a valid decimal number and greater than zero.
+        max:
+          type: string
+          example: "10.0"
+        min:
+          type: string
+          example: "1.0"
+          description: Must be a valid decimal number and greater than zero.
+        percent:
+          type: string
+          format: "4.0"
+          description: Must be a valid decimal number and greater than zero.
+      required:
+        - currencyCode
+    TransferFee:
+      type: object
+      properties:
+        id:
+          type: number
+          format: uint32
+        name:
+          type: string
+        requestSubject:
+          type: string
+        userGroupId:
+          type: array
+          items:
+            type: number
+            format: uint32
+        createdAt:
+          type: string
+
+    CreateCard:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Must be an id of exisiting user.
+        number:
+          type: string
+          example: "1111000011110000"
+          description: "should match one of patterns: \"^[0-9]{16}$\", \"^[a-zA-Z0-9]{1,19}$\". A pattern depends on card type format."
+        status:
+          type: string
+          example: active
+        cardTypeId:
+          type: integer
+          format: uint32
+          example: 1
+        expirationYear:
+          type: integer
+          format: int32
+          example: 2020
+        expirationMonth:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 12
+          example: 7
+      required:
+        - userId
+        - number
+        - status
+        - cardTypeId
+        - expirationYear
+        - expirationMonth
+    UpdateCard:
+      type: object
+      properties:
+        status:
+          type: string
+          example: active
+        expirationYear:
+          type: integer
+          format: int32
+          example: 2020
+        expirationMonth:
+          type: integer
+          format: int32
+          example: 7
+    Card:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        userId:
+          type: integer
+          format: uint32
+        number:
+          type: string
+        status:
+          type: string
+        cardTypeId:
+          type: integer
+          format: uint32
+        expirationYear:
+          type: integer
+          format: int32
+          example: 2020
+        expirationMonth:
+          type: integer
+          format: int32
+          example: 7
+        createdAt:
+          type: string
+          format: date-time
+    FullCard:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        userId:
+          type: integer
+          format: uint32
+        balance:
+          type: string
+          format: decimal
+        number:
+          type: string
+        numberFormat:
+          type: string
+        status:
+          type: string
+        cardTypeId:
+          type: integer
+          format: uint32
+        expirationYear:
+          type: integer
+          format: int32
+          example: 2020
+        expirationMonth:
+          type: integer
+          format: int32
+          example: 7
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+        cardType:
+          $ref: '#/components/schemas/FullCardType'
+    CardType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        iconId:
+          type: integer
+          format: uint32
+    FullCardType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        iconId:
+          type: integer
+          format: uint32
+        category:
+          $ref: '#/components/schemas/CardTypeCategory'
+        format:
+          $ref: '#/components/schemas/CardTypeFormat'
+
+    CreateCardType:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 250
+        currencyCode:
+          type: string
+          example: "EUR"
+          description: must be an code of active currency.
+        iconId:
+          type: integer
+          format: uint32
+        cardTypeCategoryId:
+          type: integer
+          format: uint32
+        cardTypeFormatId:
+          type: integer
+          format: uint32
+      required:
+        - name
+        - currencyCode
+        - cardTypeCategoryId
+        - cardTypeFormatId
+    UpdateCardType:
+      type: object
+      properties:
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        iconId:
+          type: integer
+          format: uint32
+        cardTypeCategoryId:
+          type: integer
+        cardTypeFormatId:
+          type: integer
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+    FullAccountUser:
+      type: object
+      properties:
+        uid:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        roleName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        groupId:
+          type: string
+    AccountUser:
+      type: object
+      properties:
+        uid:
+          type: string
+        username:
+          type: string
+        roleName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    UpdateSetting:
+      type: object
+      properties:
+        value:
+          type: string
+          description: new setting value
+    MassUpdateSetting:
+      type: object
+      properties:
+        keyValuePairs:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+    Setting:
+      type: object
+      properties:
+        value:
+          type: string
+          description: new setting value
+        type:
+          type: string
+          enum:
+            - setting
+        name:
+          type: string
+        description:
+          type: string
+    ExtensionActivity:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+          description: extension activity status
+    TanCount:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          format: uint32
+        userId:
+          type: string
+    TanCreateRequest:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          format: uint32
+          description: How many OTPs should be created?
+        cancelOld:
+          type: boolean
+          description: Reset previously generated OTPs if set to true.
+        notificationMethod:
+          type: string
+          enum:
+            - internal_message
+            - sms
+      required:
+        - quantity
+    CollectionLinks:
+      type: object
+      properties:
+        next:
+          type: string
+        prev:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+
+    RequestTemplateTbu:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        requestSubject:
+          type: string
+          example: TBU
+        createdAt:
+          type: string
+        data:
+          type: object
+          properties:
+            accountIdFrom:
+              type: number
+            accountNumberTo:
+              type: string
+            description:
+              type: string
+            outgoingAmount:
+              type: string
+            userName:
+              type: string
+
+    RequestTemplateCft:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        requestSubject:
+          type: string
+          example: CFT
+        createdAt:
+          type: string
+        data:
+          type: object
+          properties:
+            accountIdFrom:
+              type: number
+            cardIdTo:
+              type: number
+            outgoingAmount:
+              type: string
+            description:
+              type: string
+
+    RequestTemplateOwt:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        requestSubject:
+          type: string
+          example: OWT
+        createdAt:
+          type: string
+        data:
+          type: object
+          properties:
+            accountIdFrom:
+              type: number
+            bankAbaRtn:
+              type: string
+            bankAddress:
+              type: string
+            bankCountryId:
+              type: number
+            bankLocation:
+              type: string
+            bankName:
+              type: string
+            bankSwiftBic:
+              type: string
+            customerAccIban:
+              type: string
+            customerAddress:
+              type: string
+            customerName:
+              type: string
+            description:
+              type: string
+            intermediaryBankAbaRtn:
+              type: string
+            intermediaryBankAccIban:
+              type: string
+            intermediaryBankAddress:
+              type: string
+            intermediaryBankCountryId:
+              type: string
+            intermediaryBankLocation:
+              type: string
+            intermediaryBankName:
+              type: string
+            intermediaryBankSwiftBic:
+              type: string
+            isIntermediaryBankRequired:
+              type: string
+            outgoingAmount:
+              type: string
+            refMessage:
+              type: string
+            referenceCurrencyCode:
+              type: string
+            feeId:
+              type: integer
+              description: Existing fee id.
+
+    Country:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Spain
+        code:
+          type: string
+          example: ES
+        code3:
+          type: string
+          example: ESP
+        codeNumeric:
+          type: string
+          example: 724
+    CardTypeCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    CardTypeFormat:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+    CreateIwtAccount:
+      type: object
+      properties:
+        additionalInstructions:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        isIntermediaryBankRequired:
+          type: boolean
+        isIwtEnabled:
+          type: boolean
+        intermediaryBankDetails:
+          type: object
+          properties:
+            countryId:
+              type: integer
+              format: uint32
+            abaNumber:
+              type: string
+            address:
+              type: string
+            bankName:
+              type: string
+            iban:
+              type: string
+            location:
+              type: string
+            swiftCode:
+              type: string
+        beneficiaryCustomer:
+          type: object
+          properties:
+            accountName:
+              type: string
+            address:
+              type: string
+            iban:
+              type: string
+        beneficiaryBankDetails:
+          type: object
+          properties:
+            countryId:
+              type: integer
+              format: uint32
+            abaNumber:
+              type: string
+            address:
+              type: string
+            bankName:
+              type: string
+            iban:
+              type: string
+            location:
+              type: string
+            swiftCode:
+              type: string
+    IwtBankAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        currencyCode:
+          type: string
+          example: "EUR"
+        updatedAt:
+          type: string
+          example: 2018-06-18-14:00
+        createdAt:
+          type: string
+          example: 2018-06-18-14:00
+        isIwtEnabled:
+          type: boolean
+        intermediaryBankDetailsId:
+          type: integer
+          format: uint32
+        intermediaryBankDetails:
+          $ref: '#/components/schemas/IntermediaryBankDetails'
+        beneficiaryCustomerId:
+          type: integer
+          format: uint32
+        beneficiaryCustomer:
+          $ref: '#/components/schemas/BeneficiaryCustomer'
+        beneficiaryBankDetailsId:
+          type: integer
+          format: uint32
+        beneficiaryBankDetails:
+          $ref: '#/components/schemas/IntermediaryBankDetails'
+        additionalInstructions:
+          type: string
+    IntermediaryBankDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        countryId:
+          type: integer
+          format: uint32
+        abaNumber:
+          type: string
+        address:
+          type: string
+        updatedAt:
+          type: string
+          example: 2018-06-18-14:00
+        createdAt:
+          type: string
+          example: 2018-06-18-14:00
+        bankName:
+          type: string
+        iban:
+          type: string
+        location:
+          type: string
+        swiftCode:
+          type: string
+        country:
+          $ref: '#/components/schemas/Country'
+    BeneficiaryCustomer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint32
+        accountName:
+          type: string
+        address:
+          type: string
+        updatedAt:
+          type: string
+          example: 2018-06-18-14:00
+        createdAt:
+          type: string
+          example: 2018-06-18-14:00
+        iban:
+          type: string
+
+    ListTransactionsHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          example: "966.85617048"
+        total:
+          type: string
+          example: "964.85617048"
+        amountInFiat:
+          type: string
+          example: "483.42808524"
+        balanceSnapshot:
+          type: string
+          example: "966.85617048"
+        category:
+          type: string
+          enum:
+            - add_fund
+            - withdraw
+            - send_money
+            - request_money
+            - pay_bills
+        billCategory:
+          type: string
+        description:
+          type: string
+          example: "Transfer Between Accounts"
+        fees:
+          type: object
+          properties:
+            list:
+              type: array
+              items:
+                type: object
+                properties:
+                  amount:
+                    type: string
+                    example: "-2"
+                  description:
+                    type: string
+                    example: "tbufee"
+                  purpose:
+                    type: string
+                    enum:
+                      - fee_default_transfer
+                      - fee_exchange_margin
+                  status:
+                    type: string
+                    example: "cancelled"
+            total:
+              type: string
+              example: "-2"
+        purpose:
+          type: string
+          example: "tbu_incoming"
+        recipient:
+          type: object
+          properties:
+            account:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                number:
+                  type: string
+                typeName:
+                  type: string
+            profile:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phoneNumber:
+                  type: string
+                avatar:
+                  type: string
+        requestId:
+          type: integer
+          format: uint64
+        requestRate:
+          type: string
+        requestSubject:
+          type: string
+        sender:
+          type: object
+          properties:
+            account:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                number:
+                  type: string
+                typeName:
+                  type: string
+            profile:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phoneNumber:
+                  type: string
+                avatar:
+                  type: string
+        showRequestId:
+          type: boolean
+        type:
+          type: string
+        statusChangedAt:
+          type: string
+          format: datetime
+          example: "2018-12-26T09:29:25Z"
+        createdAt:
+          type: string
+          format: datetime
+          example: "2018-12-26T09:29:25Z"
+        updatedAt:
+          type: string
+          format: datetime
+          example: "2018-12-26T09:29:25Z"
+
+    ModelForm:
+      type: object
+      properties:
+        name:
+          type: string
+        dataType:
+          type: string
+        validators:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelFormValidator'
+
+    ModelFormValidator:
+      type: object
+      properties:
+        name:
+          type: string
+        options:
+          type: object
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelFormValidatorCondition'
+
+    ModelFormValidatorCondition:
+      type: object
+      properties:
+        fieldName:
+          type: string
+        values:
+          type: array
+          items:
+            type: object
+        type:
+          type: string
+          enum:
+            - in
+
+    ForbiddenResponse:
+      type: object
+      description: '403'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BadRequestResponse:
+      type: object
+      description: '400'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    ErrorResponse:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Bad Request
+        details:
+          type: string
+          example: Bad Request
+        code:
+          type: string
+          description: Unique error code
+        source:
+          type: string
+          description: Name of field if target is 'field'
+        target:
+          type: string
+          enum:
+            - field
+            - common
+          default: common
+        meta:
+          type: object
+          description: Additional meta information about errors.
+          example:
+            max:
+              value: 10
+            min:
+              value: 5
+
+    Pagination:
+      type: object
+      properties:
+        totalRecord:
+          type: number
+          example: 535
+        totalPage:
+          type: number
+          example: 26
+        limit:
+          type: number
+          example: 20
+        currentPage:
+          type: number
+          example: 1
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TAN:
+      in: header
+      name: X-TAN
+      description: One time transaction password (OTP). Must be provided if corresponding setting is enabled.
+      schema:
+        type: string
+    CreatedAtFrom:
+      name: filter[createdAtFrom]
+      in: query
+      description: Applies filter by createdAt. Returns records where date >= passed.
+      schema:
+        type: string
+    CreatedAtTo:
+      name: filter[createdAtTo]
+      in: query
+      description: Applies filter by createdAt. Returns records where date < passed.
+      schema:
+        type: string
+    PageSize:
+      name: page[size]
+      in: query
+      description: Specifies count of objects returned in response. Default value is 20.
+      schema:
+        type: string
+    PageNumber:
+      name: page[number]
+      in: query
+      description: Specifies page number to be shown in response. size + number makes offset for records. Default value is 1.
+      schema:
+        type: string
+    StatusEq:
+      name: 'filter[status:eq]'
+      in: query
+      description: For filtering by status using equal operator
+      schema:
+        type: string
+    StatusNeq:
+      name: 'filter[status:neq]'
+      in: query
+      description: For filtering by status using not equal operator
+      schema:
+        type: string
+    StatusIn:
+      name: 'filter[status:in]'
+      in: query
+      description: For filtering by status using in operator
+      schema:
+        type: string
+    StatusNin:
+      name: 'filter[status:nin]'
+      in: query
+      description: For filtering by status using not in operator
+      schema:
+        type: string
+    Status:
+      name: 'filter[status]'
+      in: query
+      description: For filtering by status
+      schema:
+        type: string

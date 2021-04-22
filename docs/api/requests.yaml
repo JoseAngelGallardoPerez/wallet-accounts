@@ -1,0 +1,3872 @@
+openapi: 3.0.0
+info:
+  version: "0.0.1"
+  title: 'Wallet accounts service (requests)'
+  description: |
+    Server uses rfc3339 for time in request and in response.
+security:
+  - bearerAuth: []
+paths:
+  '/accounts/private/v1/requests/{requestId}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Show a request details.
+      description: |
+        Available for users who has account used in transaction of this request.
+        \
+        Available for admins who has any of permissions: "execute_cancel_pending_transfer_requests" or "initiate_execute_user_transfers".
+      operationId: viewRequest
+      parameters:
+        - name: requestId
+          in: path
+          description: Request id
+          required: true
+          schema:
+            type: integer
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RequestView'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/requests/{requestId}':
+    patch:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Update convertion rate as an admin.
+      description: |
+        Available for admins who has "execute_cancel_pending_transfer_requests" permission.
+      operationId: modifyRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rate'
+        required: true
+      parameters:
+        - name: requestId
+          in: path
+          description: Request id
+          required: true
+          schema:
+            type: integer
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RequestPreview'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/requests/execute/{requestId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Executes pending request.
+      description: Available for admins who has "execute_cancel_pending_transfer_requests" permission.
+      operationId: executeRequest
+      parameters:
+        - name: requestId
+          in: path
+          description: Request id
+          required: true
+          schema:
+            type: integer
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RequestExecute'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/requests/cancel/{requestId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Cancels pending request.
+      description: Available for admins who has "execute_cancel_pending_transfer_requests" permissions. The reason parameter is a cancellation reason.
+      operationId: cancelRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+        required: true
+      parameters:
+        - name: requestId
+          in: path
+          description: Request id
+          required: true
+          schema:
+            type: integer
+            format: uint32
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RequestExecute'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/requests/csv/update':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Updates requests from csv file.
+      description: |
+        Available for admins who has "import_transfer_request_updates" permission.
+
+        \
+        This updates rate and status by request id for all passed requests. File should contain header with following columns: "Request ID", "Status", "Exchange rate".
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      operationId: updateRequestsFromCsv
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SuccessfulUpdateRequestFromCsvResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestUpdateRequestFromCsvResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/requests/csv/import':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Imports requests from csv file.
+      description: |
+        Available for admins who has "manual_debit_credit_accounts" permission.
+
+        \
+        This created credit or debit requests from csv file.
+
+        \
+        File should contain following columns: "Username", "Account number", "Debit or Credit", "Amount", "Description", "Revenue", "Apply IWT Fee".
+        \
+        1 column - username of an account owner
+        \
+        2 column - an existing account number.
+        \
+        3 column - an request type. Possible values: "debit" or "credit".
+        \
+        4 column - amount that should be added or subtracted.
+        \
+        5 column - description.
+        \
+        6 column - use revenue amount in request (debit/credit depends on second colum). Values: "yes" or "no"
+        \
+        7 column - need to apply IWT Fee. Values: "yes" or "no"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      operationId: importRequestsFromCsv
+      responses:
+        '200':
+          description: Successful request
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestImportRequestFromCsvResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  '/accounts/private/v1/requests':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Show list of requests.
+      description: Available for admins. Has includes of related models, filters, sortings, pagination.
+      operationId: getRequests
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with request.
+          schema:
+            type: string
+            enum:
+              - user
+              - balanceSnapshots
+              - balanceSnapshots.balanceType
+              - balanceDifference
+
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - statusChangedAt
+              - user.username
+              - amount
+              - subject
+              - status
+              - totalOutgoingAmount
+              - description
+
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+
+        - name: filter[baseCurrencyCode]
+          in: query
+          description: Applies filter by base currency code.
+          schema:
+            type: string
+
+        - name: filter[subject]
+          in: query
+          description: Applies filter by subject.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusNin'
+
+        - name: filter[createdAt:gte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+
+        - name: filter[createdAt:lte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date <= passed.
+          schema:
+            type: string
+
+        - name: filter[statusChangedAt:gte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date >= passed.
+          schema:
+            type: string
+
+        - name: filter[statusChangedAt:lte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date <= passed.
+          schema:
+            type: string
+
+        - name: filter[isVisible]
+          in: query
+          description: Applies filter by isVisible value.
+          schema:
+            type: string
+
+        - name: filter[accountId]
+          in: query
+          description: Applies filter by account id.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ListRequest'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/user/requests':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Shows list of requests for user.
+      description: Collect requests was created for current user (by user himself or by an admin). Has includes of related models, filters, sortings, pagination.
+      operationId: getMyRequests
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with request.
+          schema:
+            type: string
+            enum:
+              - user
+              - balanceSnapshots
+              - balanceSnapshots.balanceType
+              - balanceDifference
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - statusChangedAt
+              - amount
+              - subject
+              - status
+              - totalOutgoingAmount
+              - description
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+        - name: filter[baseCurrencyCode]
+          in: query
+          description: Applies filter by base currency code.
+          schema:
+            type: string
+        - name: filter[subject]
+          in: query
+          description: Applies filter by subject.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusNin'
+
+        - name: filter[createdAt:gte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+        - name: filter[createdAt:lte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date <= passed.
+          schema:
+            type: string
+        - name: filter[statusChangedAt:gte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date >= passed.
+          schema:
+            type: string
+        - name: filter[statusChangedAt:lte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date <= passed.
+          schema:
+            type: string
+        - name: filter[isVisible]
+          in: query
+          description: Applies filter by isVisible value.
+          schema:
+            type: string
+        - name: filter[accountId]
+          in: query
+          description: Applies filter by account id.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    $ref: '#/components/schemas/CollectionLinks'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ListRequest'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+  '/accounts/private/v1/admin/export/transfer-requests':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      summary: Responds with a file with requests for admins.
+      operationId: downloadCsvWithRequests
+      parameters:
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - statusChangedAt
+              - user.username
+              - amount
+              - subject
+              - status
+              - totalOutgoingAmount
+              - description
+        - name: filter[id]
+          in: query
+          description: Applies filter by id.
+          schema:
+            type: string
+
+        - name: filter[baseCurrencyCode]
+          in: query
+          description: Applies filter by base currency code.
+          schema:
+            type: string
+
+        - name: filter[subject]
+          in: query
+          description: Applies filter by subject.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/StatusIn'
+        - $ref: '#/components/parameters/StatusEq'
+        - $ref: '#/components/parameters/StatusNeq'
+        - $ref: '#/components/parameters/StatusNin'
+
+        - name: filter[createdAt:gte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date >= passed.
+          schema:
+            type: string
+
+        - name: filter[createdAt:lte]
+          in: query
+          description: Applies filter by createdAt. Returns records where date <= passed.
+          schema:
+            type: string
+
+        - name: filter[statusChangedAt:gte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date >= passed.
+          schema:
+            type: string
+
+        - name: filter[statusChangedAt:lte]
+          in: query
+          description: Applies filter by statusChangedAt. Returns records where date <= passed.
+          schema:
+            type: string
+
+        - name: filter[isVisible]
+          in: query
+          description: Applies filter by isVisible value.
+          schema:
+            type: string
+
+        - name: filter[accountId]
+          in: query
+          description: Applies filter by account id.
+          schema:
+            type: string
+
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+
+      responses:
+        '200':
+          description: Successful request
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+
+
+  '/accounts/private/v1/tba-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBA(transfer between accounts) Requests
+      summary: Makes request evaluation for TBA.
+      description: |
+        Available for users.
+      operationId: createTBARequestPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBARequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBARequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/tba-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBA(transfer between accounts) Requests
+      summary: Creates a new request between accounts.
+      description: Available for users.
+      operationId: createTBARequest
+      parameters:
+        - $ref: '#/components/parameters/TAN'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBARequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBARequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/tba-requests/preview/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBA(transfer between accounts) Requests
+      summary: Makes evaluation of TBA request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      operationId: createTBARequestAdminPreview
+      parameters:
+        - name: userId
+          in: path
+          description: Id of user for who request will be evaluated
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBARequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBARequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/tba-requests/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBA(transfer between accounts) Requests
+      summary: Creates a new TBA request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      parameters:
+        - name: userId
+          in: path
+          description: Id of user for who request will be created.
+          required: true
+          schema:
+            type: string
+      operationId: createTBARequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBARequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBARequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/tbu-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBU(transfer between users) Requests
+      summary: Makes evaluation request for transfer between users.
+      description: Available for users.
+      operationId: createTBURequestPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBURequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBURequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/tbu-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBU(transfer between users) Requests
+      summary: Creates a new request between users.
+      description: Available for users.
+      operationId: createTBURequest
+      parameters:
+        - $ref: '#/components/parameters/TAN'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBURequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBURequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/tbu-requests/preview/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBU(transfer between users) Requests
+      summary: Makes evaluation if TBU request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      operationId: createTBURequestAdminPreview
+      parameters:
+        - name: userId
+          in: path
+          description: Id of user for who request will be evaluated.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBURequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBURequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/tbu-requests/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - TBU(transfer between users) Requests
+      summary: Creates a new TBU request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      parameters:
+        - name: userId
+          in: path
+          description:  Id of user for who request will be created.
+          required: true
+          schema:
+            type: string
+      operationId: createTBURequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTBURequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBURequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/owt-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OWT(Outgoing wire transfer) Requests
+      summary: Makes evaluation of OWT request.
+      description: Available for users.
+      operationId: createOWTRequestPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOWTRequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OWTRequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/owt-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OWT(Outgoing wire transfer) Requests
+      summary: Creates a new OWT Request.
+      description: Available for users.
+      operationId: createOWTRequest
+      parameters:
+        - $ref: '#/components/parameters/TAN'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOWTRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OWTRequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/owt-requests/preview/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OWT(Outgoing wire transfer) Requests
+      summary: Makes evaluation request for OWT.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      operationId: createOWTRequestAdminPreview
+      parameters:
+        - name: userId
+          in: path
+          description:  Id of user for who request will be evaluated.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOWTRequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OWTRequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/owt-requests/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - OWT(Outgoing wire transfer) Requests
+      summary: Creates a new OWT request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      parameters:
+        - name: userId
+          in: path
+          description:  Id of user for who request will be created.
+          required: true
+          schema:
+            type: string
+      operationId: createOWTRequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOWTRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OWTRequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/cft-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CFT(Card funcing transfer) Requests
+      summary: Makes evaluation if CFT request.
+      description: Available for users.
+      operationId: createCFTRequestPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCFTRequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CFTRequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/cft-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CFT(Card funcing transfer) Requests
+      summary: Creates a new CFT request.
+      description: Available for users.
+      operationId: createCFTRequest
+      parameters:
+        - $ref: '#/components/parameters/TAN'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCFTRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CFTRequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/cft-requests/preview/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CFT(Card funcing transfer) Requests
+      summary: Makes evaluation of CFT request.
+      description: Available for admins who has "initiate_execute_user_transfers" permission.
+      operationId: createCFTRequestAdminPreview
+      parameters:
+        - name: userId
+          in: path
+          description:  Id of user for who request will be evaluated.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCFTRequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CFTRequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/cft-requests/user/{userId}':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CFT(Card funcing transfer) Requests
+      summary: Creates a new CFT request.
+      description: Available for admins who has "initiate_execute_user_transfers" permissions.
+      parameters:
+        - name: userId
+          in: path
+          description: Id of user for who request will be created.
+          required: true
+          schema:
+            type: string
+      operationId: createCFTRequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCFTRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CFTRequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/admin/ca-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CA(Credit account) Requests
+      summary: Makes an evaluation of CA request.
+      description: Available for admins who has "manual_debit_credit_accounts" permission.
+      operationId: createCARequestAdminPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCARequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CARequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/ca-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - CA(Credit account) Requests
+      summary: Creates a new CA request.
+      description: Available for admins who has "manual_debit_credit_accounts" permission.
+      operationId: createCARequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCARequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CARequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/admin/da-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - DA(Debit account) Requests
+      summary: Makes an evaluation of DA request.
+      description: Available for admins who has "manual_debit_credit_accounts" permission.
+      operationId: createDARequestAdminPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDARequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DARequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/da-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - DA(Debit account) Requests
+      summary: Creates a new DA request.
+      description: Available for admins who has "manual_debit_credit_accounts" permission.
+      operationId: createDARequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDARequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DARequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+
+  '/accounts/private/v1/admin/dra-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - DRA(Deduct revenue account) Requests
+      summary: Makes an evaluation of DRA request.
+      description: Available for admins who has "manage_revenue" permission.
+      operationId: createDRARequestAdminPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDRARequestPreview'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DRARequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/admin/dra-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - DRA(Deduct revenue account) Requests
+      summary: Creates a new DRA request.
+      description: Available for admins who has "manage_revenue" permission.
+      operationId: createDRARequestAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDRARequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DRARequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+  '/accounts/private/v1/money-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Creates a new money request.
+      operationId: createMoneyRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMoneyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MoneyRequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/money-requests/id/{id}':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Get money request.
+      description: Available for a user who is going to make a TBU transfer.
+      parameters:
+        - name: id
+          in: path
+          description: Id of money request
+          required: true
+          schema:
+            type: string
+      operationId: GetMoneyRequest
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MoneyRequest'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+  '/accounts/private/v1/money-requests/id/{id}/mark-old':
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Mark as old.
+      description: It changes "isNew" property to "false". Available for a user who is going to make a TBU transfer.
+      parameters:
+        - name: id
+          in: path
+          description: Id of money request
+          required: true
+          schema:
+            type: string
+      operationId: PutMoneyRequest
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MoneyRequest'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/money-requests/incoming':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Get incoming money request.
+      description: Available for a user who is going to make a TBU transfer.
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with request.
+          schema:
+            type: string
+            enum:
+              - recipient
+
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - status
+              - createdAt
+              - isNew
+
+        - $ref: '#/components/parameters/Status'
+        - name: filter[isNew]
+          in: query
+          description: Applies filter by isNew value.
+          schema:
+            type: boolean
+
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      operationId: GetIncomingMoneyRequest
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MoneyRequest'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/money-requests/outgoing':
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Get outgoing money request.
+      description: Available for a user who waits founds.
+      parameters:
+        - name: include
+          in: query
+          description: Used to load nested resources associated with request.
+          schema:
+            type: string
+            enum:
+              - sender
+
+        - name: sort
+          in: query
+          description: Sorts records. Can be sorted in DESC direction by adding "-" prefix.
+          schema:
+            type: string
+            enum:
+              - status
+              - createdAt
+
+        - $ref: '#/components/parameters/Status'
+          in: query
+          description: Applies filter by isNew value.
+          schema:
+            type: boolean
+
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageNumber'
+      operationId: GetOutgoingMoneyRequest
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MoneyRequest'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/tbu-money-requests/preview':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Makes an evaluation of TBU request by a money request.
+      operationId: createMoneyTBURequestPreview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMoneyTBURequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MoneyTBURequestPreview'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+  '/accounts/private/v1/tbu-money-requests':
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Money Requests
+      summary: Creates a new request between users by a money request.
+      description: Available for users.
+      operationId: createMoneyTBURequest
+      parameters:
+        - $ref: '#/components/parameters/TAN'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMoneyTBURequest'
+        required: true
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TBURequest'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnprocessableEntityResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+
+components:
+  schemas:
+
+    FullAccountList:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        allowDeposits:
+          type: boolean
+        allowWithdrawals:
+          type: boolean
+        availableAmount:
+          type: string
+          format: decimal
+        balance:
+          type: string
+          format: decimal
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        description:
+          type: string
+        interestAccountId:
+          type: integer
+          format: uint64
+        interestAccount:
+          $ref: '#/components/schemas/FullAccountList'
+        isActive:
+          type: boolean
+        maturityDate:
+          type: string
+          format: datetime
+        number:
+          type: string
+        payoutDay:
+          type: integer
+          format: uint64
+        typeId:
+          type: integer
+          format: uint64
+        userId:
+          type: string
+        user:
+          $ref: '#/components/schemas/AccountUser'
+        type:
+          $ref: '#/components/schemas/AccountType'
+    FullAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        allowDeposits:
+          type: boolean
+        allowWithdrawals:
+          type: boolean
+        availableAmount:
+          type: string
+          format: decimal
+        balance:
+          type: string
+          format: decimal
+        initialBalance:
+          type: string
+          format: decimal
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        description:
+          type: string
+        interestAccountId:
+          type: integer
+          format: uint64
+        interestAccount:
+          $ref: '#/components/schemas/FullAccount'
+        isActive:
+          type: boolean
+        maturityDate:
+          type: string
+          format: datetime
+        number:
+          type: string
+        payoutDay:
+          type: integer
+          format: uint64
+        typeId:
+          type: integer
+          format: uint64
+        userId:
+          type: string
+        user:
+          $ref: '#/components/schemas/FullAccountUser'
+        type:
+          $ref: '#/components/schemas/FullAccountType'
+
+    FullAccountType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        balanceFeeAmount:
+          type: string
+          format: decimal
+        balanceChargeDay:
+          type: integer
+        balanceLimitAmount:
+          type: string
+          format: decimal
+        creditLimitAmount:
+          type: string
+          format: decimal
+        creditAnnualInterestRate:
+          type: string
+          format: decimal
+        creditPayoutMethodId:
+          type: integer
+        creditPayoutMethod:
+          $ref: '#/components/schemas/FullPaymentMethod'
+        creditChargePeriodId:
+          type: integer
+        creditPayoutPeriod:
+          $ref: '#/components/schemas/FullPaymentPeriod'
+        creditChargeDay:
+          type: integer
+        creditChargeMonth:
+          type: integer
+        depositAnnualInterestRate:
+          type: string
+          format: decimal
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutMethod:
+          $ref: '#/components/schemas/FullPaymentMethod'
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutPeriod:
+          $ref: '#/components/schemas/FullPaymentPeriod'
+        depositPayoutDay:
+          type: integer
+        depositPayoutMonth:
+          type: integer
+        autoNumberGeneration:
+          type: boolean
+        numberPrefix:
+          type: string
+          example: "EBQ"
+        monthlyMaintenanceFee:
+          type: string
+          format: decimal
+    AccountType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        name:
+          type: string
+        currencyCode:
+          type: string
+          example: "EUR"
+        balanceFeeAmount:
+          type: string
+          format: decimal
+        balanceChargeDay:
+          type: integer
+        balanceLimitAmount:
+          type: string
+          format: decimal
+        creditLimitAmount:
+          type: string
+          format: decimal
+        creditAnnualInterestRate:
+          type: string
+          format: decimal
+        creditPayoutMethodId:
+          type: integer
+        creditChargePeriodId:
+          type: integer
+        creditChargeDay:
+          type: integer
+        creditChargeMonth:
+          type: integer
+        depositAnnualInterestRate:
+          type: string
+          format: decimal
+        depositPayoutMethodId:
+          type: integer
+        depositPayoutPeriodId:
+          type: integer
+        depositPayoutDay:
+          type: integer
+        autoNumberGeneration:
+          type: boolean
+        monthlyMaintenanceFee:
+          type: string
+          format: decimal
+    FullPaymentPeriod:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: unit
+        name:
+          type: string
+    FullPaymentMethod:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: unit
+        name:
+          type: string
+
+    ListRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+        balanceDifference:
+          type: array
+          items:
+            type: object
+            properties:
+              balanceType:
+                type: string
+                enum:
+                  - account
+                  - card
+              balanceId:
+                type: number
+              currencyCode:
+                type: string
+              difference:
+                type: string
+                format: float64
+        baseCurrencyCode:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+        snapshots:
+          type: array
+          description: Use optional include parameter "balanceSnapshots" in order to include this section.
+          items:
+            type: object
+            properties:
+              balanceId:
+                type: number
+              balanceType:
+                description: Use optional include parameter "balanceSnapshots.balanceType" in order to include this section.
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "account"
+                    enum:
+                      - account
+                      - card
+              value:
+                type: object
+                properties:
+                  availableAmount:
+                    type: string
+                  balance:
+                    type: string
+        status:
+          type: string
+          example: "pendig"
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+          example: "TBA"
+        user:
+          $ref: '#/components/schemas/ListRequestUser'
+        userId:
+          type: string
+
+
+    ListRequestUser:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+
+    TBARequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    TBURequestPreview:
+      type: object
+      properties:
+        incomingCurrencyCode:
+          type: string
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    OWTRequestPreview:
+      type: object
+      properties:
+        totalOutgoingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    CFTRequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    CARequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    DARequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    DRARequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    TBARequestPreviewDetails:
+      type: array
+      items:
+        type: object
+        properties:
+          purpose:
+            type: string
+            example: "fee_transfer_default"
+          currencyCode:
+            type: string
+            example: "EUR"
+          amount:
+            type: string
+            format: float64
+            example: "-8.95"
+
+    RequestExecute:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    RequestPreview:
+      type: object
+      properties:
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        incomingCurrencyCode:
+          type: string
+          example: "CHF"
+        totalOutgoingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              purpose:
+                type: string
+                example: "fee_transfer_default"
+              currencyCode:
+                type: string
+                example: "EUR"
+              amount:
+                type: string
+                format: float64
+                example: "-8.95"
+
+    FullAccountUser:
+      type: object
+      properties:
+        uid:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        roleName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        groupId:
+          type: string
+
+    AccountUser:
+      type: object
+      properties:
+        uid:
+          type: string
+        username:
+          type: string
+        roleName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    CreateTBARequestPreview:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+        accountIdTo:
+          type: integer
+          format: uint32
+        outgoingAmount:
+          type: string
+          format: decimal
+          description: Must be a valid decimal number and greater than zero.
+      required:
+        - accountIdFrom
+        - accountIdTo
+        - outgoingAmount
+
+    CreateTBARequest:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint64
+        accountIdTo:
+          type: integer
+          format: uint64
+        outgoingAmount:
+          type: string
+          description: amount to transfer. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "112.435"
+        description:
+          type: string
+          maxLength: 65535
+        incomingAmount:
+          type: string
+          description: converted amount. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "312.431"
+      required:
+        - accountIdFrom
+        - accountIdTo
+        - outgoingAmount
+        - description
+        - incomingAmount
+
+    CreateCFTRequestPreview:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+        cardIdTo:
+          type: integer
+          format: uint32
+        outgoingAmount:
+          type: string
+          format: decimal
+          description: Must be a valid decimal number and greater than zero.
+      required:
+        - accountIdFrom
+        - cardIdTo
+        - outgoingAmount
+
+    CreateCFTRequest:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint64
+        cardIdTo:
+          type: integer
+          format: uint64
+        outgoingAmount:
+          type: string
+          description: amount to transfer. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "112.435"
+        description:
+          type: string
+          maxLength: 65535
+        incomingAmount:
+          type: string
+          description: converted amount. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "312.431"
+        saveAsTemplate:
+          type: boolean
+          description: whether input fields should be saved as template
+        templateName:
+          type: string
+          description: unique template name
+      required:
+        - accountIdFrom
+        - cardIdTo
+        - outgoingAmount
+        - description
+        - incomingAmount
+
+    CreateTBURequestPreview:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+        userName:
+          type: string
+          example: theuser
+          description: recipient user name
+        accountNumberTo:
+          type: string
+          example: "EBQ123456789"
+          description: recipient account number
+        outgoingAmount:
+          type: string
+          format: decimal
+          description: Must be a valid decimal number and greater than zero.
+        saveAsTemplate:
+          type: boolean
+        templateName:
+          type: string
+      required:
+        - accountIdFrom
+        - userName
+        - accountNumberTo
+        - outgoingAmount
+
+    CreateTBURequest:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint64
+        userName:
+          type: string
+          example: theuser
+          description: recipient user name
+        accountNumberTo:
+          type: string
+          example: "EBQ123456789"
+          description: recipient account number
+        outgoingAmount:
+          type: string
+          description: amount to transfer. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "112.435"
+        description:
+          type: string
+          maxLength: 65535
+        incomingAmount:
+          type: string
+          description: converted amount
+          format: decimal
+          example: "312.431"
+        saveAsTemplate:
+          type: boolean
+          description: whether input fields should be saved as template
+        templateName:
+          type: string
+          description: unique template name
+      required:
+        - accountIdFrom
+        - userName
+        - accountNumberTo
+        - outgoingAmount
+        - description
+        - incomingAmount
+
+    CreateOWTRequestPreview:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+          description: source account id
+        referenceCurrencyCode:
+          type: string
+          description: destination account currency
+        outgoingAmount:
+          type: string
+          format: decimal
+          description: amount to transfer. Must be a valid decimal number and greater than zero.
+        feeId:
+          type: integer
+          format: uint64
+          description: optional fee id which should be applied to the request
+        saveAsTemplate:
+          type: boolean
+          description: whether input fields should be saved as template
+        templateName:
+          type: string
+          description: unique template name
+      required:
+        - accountIdFrom
+        - referenceCurrencyCode
+        - outgoingAmount
+
+    CreateOWTRequest:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+          description: source account id
+        referenceCurrencyCode:
+          type: string
+          description: destination account currency
+        outgoingAmount:
+          type: string
+          format: decimal
+          description: amount to transfer. Must be a valid decimal number and greater than zero.
+        confirmTotalOutgoingAmount:
+          type: string
+          format: decimal
+          description: must match the value returned from preview endpoint. Must be a valid decimal number.
+        description:
+          type: string
+          description: request description
+        refMessage:
+          type: string
+          description: request description
+        bankSwiftBic:
+          type: string
+        bankName:
+          type: string
+        bankAddress:
+          type: string
+        bankLocation:
+          type: string
+        bankCountryId:
+          type: integer
+          format: uint32
+        bankAbaRtn:
+          type: string
+          format: numeric
+        customerName:
+          type: string
+        customerAddress:
+          type: string
+        customerAccIban:
+          type: string
+        isIntermediaryBankRequired:
+          type: boolean
+          description: indecates whether intermediary bank details are required
+        intermediaryBankSwiftBic:
+          type: string
+        intermediaryBankName:
+          type: string
+        intermediaryBankAddress:
+          type: string
+        intermediaryBankLocation:
+          type: string
+        intermediaryBankCountryId:
+          type: string
+        intermediaryBankAbaRtn:
+          type: string
+          format: numeric
+        intermediaryBankAccIban:
+          type: string
+        feeId:
+          type: integer
+          format: uint64
+          description: optional fee id which should be applied to the request
+        saveAsTemplate:
+          type: boolean
+          description: whether input fields should be saved as template
+        templateName:
+          type: string
+          description: unique template name
+      required:
+        - accountIdFrom
+        - referenceCurrencyCode
+        - outgoingAmount
+        - confirmTotalOutgoingAmount
+        - refMessage
+        - bankSwiftBic
+        - bankName
+        - bankAddress
+        - bankLocation
+        - bankCountryId
+        - customerName
+        - customerAddress
+        - customerAccIban
+    CreateCARequestPreview:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+        debitFromRevenueAccount:
+          type: boolean
+        applyIwtFee:
+          type: boolean
+      required:
+        - accountId
+        - amount
+        - description
+    CreateCARequest:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+        debitFromRevenueAccount:
+          type: boolean
+        applyIwtFee:
+          type: boolean
+      required:
+        - accountId
+        - amount
+        - description
+
+    CreateDARequestPreview:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+        creditToRevenueAccount:
+          type: boolean
+      required:
+        - accountId
+        - amount
+        - description
+
+    CreateDARequest:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+        creditToRevenueAccount:
+          type: boolean
+      required:
+        - accountId
+        - amount
+        - description
+
+    CreateDRARequestPreview:
+      type: object
+      properties:
+        revenueAccountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+      required:
+        - revenueAccountId
+        - amount
+
+    CreateDRARequest:
+      type: object
+      properties:
+        revenueAccountId:
+          type: integer
+          format: uint32
+        amount:
+          type: string
+          format: decimal
+        description:
+          type: string
+      required:
+        - revenueAccountId
+        - amount
+
+    CreateMoneyTBURequest:
+      type: object
+      properties:
+        accountIdFrom:
+          type: integer
+          format: uint32
+        moneyRequestId:
+          type: integer
+          format: uint32
+
+    MoneyTBURequestPreview:
+      type: object
+      properties:
+        incomingCurrencyCode:
+          type: string
+        incomingAmount:
+          type: string
+          format: decimal
+          example: "312.431"
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TBARequestPreviewDetails'
+
+    Rate:
+      type: object
+      properties:
+        rate:
+          type: string
+          description: convertion rate. Must be a valid decimal number and greater than zero.
+          format: decimal
+          example: "1.435"
+      required:
+        - rate
+
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: cancellation reason
+          example: "some notes"
+
+    Request:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    TBARequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    TBURequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    OWTRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    CFTRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    CARequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    DARequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    DRARequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        baseCurrencyCode:
+          type: string
+        cancellationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+          example: My little request
+        isInitiatedBySystem:
+          type: boolean
+        rate:
+          type: string
+          format: decimal
+          example: "312.431"
+        referenceCurrencyCode:
+          type: string
+        status:
+          type: string
+          example: pending
+        statusChangedAt:
+          type: string
+          format: date-time
+        subject:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+
+    CollectionLinks:
+      type: object
+      properties:
+        next:
+          type: string
+        prev:
+          type: string
+        first:
+          type: string
+        last:
+          type: string
+
+    RequestView:
+      type: object
+      properties:
+        data:
+          type: object
+        destinationAccount:
+          type: object
+          properties:
+            number:
+              type: string
+            type:
+              type: object
+              properties:
+                id:
+                  type: number
+                name:
+                  type: string
+            user:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+
+        sourceAccount:
+          type: object
+          properties:
+            number:
+              type: string
+            type:
+              type: object
+              properties:
+                id:
+                  type: number
+                name:
+                  type: string
+            user:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+
+        request:
+          type: object
+          properties:
+            initiator:
+              type: object
+              properties:
+                UID:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                roleName:
+                  type: string
+                userName:
+                  type: string
+            request:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  format: decimal
+                baseCurrencyCode:
+                  type: string
+                cancellationReason:
+                  type: string
+                createdAt:
+                  type: string
+                description:
+                  type: string
+                id:
+                  type: number
+                isInitiatedBySystem:
+                  type: boolean
+                rate:
+                  type: string
+                referenceCurrencyCode:
+                  type: string
+                status:
+                  type: string
+                statusChangedAt:
+                  type: string
+                subject:
+                  type: string
+                updatedAt:
+                  type: string
+                userId:
+                  type: string
+
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              account:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      currencyCode:
+                        type: string
+                        example: "EUR"
+                      description:
+                        type: string
+                      number:
+                        type: string
+                      typeId:
+                        type: number
+                  user:
+                    type: object
+                    properties:
+                      UID:
+                        type: string
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                      userName:
+                        type: string
+              card:
+                type: object
+                properties:
+                  number:
+                    type: string
+                    example: "202023213123"
+                  currencyCode:
+                    type: string
+                    example: "CHF"
+              revenueAccount:
+                type: object
+                properties:
+                  revenueAccount:
+                    type: object
+                    properties:
+                      currencyCode:
+                        type: string
+                        example: "EUR"
+                      id:
+                        type: integer
+                        format: uint64
+              transaction:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: uint64
+                  amount:
+                    type: string
+                    format: decmal
+                  availableBalanceSnapshot:
+                    type: string
+                    format: decmal
+                  createdAt:
+                    type: string
+                    format: datetime
+                  currentBalanceSnapshot:
+                    type: string
+                    format: decmal
+                  description:
+                    type: string
+                  purpose:
+                    type: string
+                  requestId:
+                    type: integer
+                    format: uint64
+                  requestSubject:
+                    type: string
+                  showRequestId:
+                    type: boolean
+                  status:
+                    type: string
+                  statusChangedAt:
+                    type: string
+                    format: datetime
+                  type:
+                    type: string
+                  updatedAt:
+                    type: string
+                    format: datetime
+
+    CreateMoneyRequest:
+      type: object
+      properties:
+        targetUID:
+          type: string
+          description: ID of user who will receive a request to make a new TBU transfer.
+        recipientAccountId:
+          type: integer
+          format: uint64
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        description:
+          type: string
+    MoneyRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        targetUID:
+          type: string
+          description: ID of user who will receive a request to make a new TBU transfer.
+        initiatorUID:
+          type: string
+          description: Initiator of MoneyRequest. This user will receive funds from another user.
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+        recipientAccountId:
+          type: integer
+          format: uint64
+        requestId:
+          type: integer
+          format: uint64
+          description: Id of created TBU transfer request.
+        amount:
+          type: string
+          format: decimal
+          example: "312.431"
+        currencyCode:
+          type: string
+        description:
+          type: string
+        isNew:
+          type: boolean
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        recipient:
+          $ref: '#/components/schemas/MoneyRequestUser'
+        sender:
+          $ref: '#/components/schemas/MoneyRequestUser'
+    MoneyRequestUser:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+
+    BadRequestError:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Bad Request
+        details:
+          type: string
+          example: Bad Request
+        code:
+          type: string
+          description: Unique error code
+        source:
+          type: string
+          description: Name of field if target is 'field'
+        target:
+          type: string
+          enum:
+            - field
+            - common
+          default: common
+        meta:
+          type: object
+          description: Additional meta information about errors.
+          example:
+            max:
+              value: 10
+            min:
+              value: 5
+    BadRequestUpdateRequestFromCsvResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            success:
+              type: integer
+              format: uint32
+              example: 0
+            failed:
+              type: integer
+              format: uint32
+              example: 10
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/BadRequestError'
+    SuccessfulUpdateRequestFromCsvResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            success:
+              type: integer
+              format: uint32
+              example: 10
+            failed:
+              type: integer
+              format: uint32
+              example: 0
+    BadRequestImportRequestFromCsvResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/BadRequestError'
+
+    ConflictResponse:
+      type: object
+      description: '409'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundResponse:
+      type: object
+      description: '404'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntityResponse:
+      type: object
+      description: '422'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenResponse:
+      type: object
+      description: '403'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequestResponse:
+      type: object
+      description: '400'
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorResponse'
+    ErrorResponse:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Bad Request
+        details:
+          type: string
+          example: Bad Request
+        code:
+          type: string
+          description: Unique error code
+        source:
+          type: string
+          description: Name of field if target is 'field'
+        target:
+          type: string
+          enum:
+            - field
+            - common
+          default: common
+        meta:
+          type: object
+          description: Additional meta information about errors.
+          example:
+            max:
+              value: 10
+            min:
+              value: 5
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TAN:
+      in: header
+      name: X-TAN
+      description: One time transaction password (OTP). Must be provided if corresponding setting is enabled.
+      schema:
+        type: string
+    CreatedAtFrom:
+      name: filter[createdAtFrom]
+      in: query
+      description: Applies filter by createdAt. Returns records where date >= passed.
+      schema:
+        type: string
+    CreatedAtTo:
+      name: filter[createdAtTo]
+      in: query
+      description: Applies filter by createdAt. Returns records where date < passed.
+      schema:
+        type: string
+
+    PageSize:
+      name: 'page[size]'
+      in: query
+      description: Specifies count of objects returned in response. Default value is 20.
+      schema:
+        type: string
+    PageNumber:
+      name: 'page[number]'
+      in: query
+      description: Specifies page number to be shown in response. size + number makes offset for records. Default value is 1.
+      schema:
+        type: string
+    StatusEq:
+      name: 'filter[status:eq]'
+      in: query
+      description: For filtering by status using equal operator
+      schema:
+        type: string
+    StatusNeq:
+      name: 'filter[status:neq]'
+      in: query
+      description: For filtering by status using not equal operator
+      schema:
+        type: string
+    StatusIn:
+      name: 'filter[status:in]'
+      in: query
+      description: For filtering by status using in operator
+      schema:
+        type: string
+    StatusNin:
+      name: 'filter[status:nin]'
+      in: query
+      description: For filtering by status using not in operator
+      schema:
+        type: string
+    Status:
+      name: 'filter[status]'
+      in: query
+      description: For filtering by status
+      schema:
+        type: string
